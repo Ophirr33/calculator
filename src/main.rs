@@ -33,7 +33,55 @@ fn main() {
 }
 
 fn tokenize(string: &str) -> Vec<Token> {
+    let mut result = Vec::new();
+    let mut last_word = String::new();
+    for c in string.chars() {
+        if c.is_numeric() || c == '.' {
+            last_word.push(c);
+        } else if is_token(c) {
+            add_token(&mut result, c);
+            add_number(&mut result, &mut last_word);
+        } else if c.is_whitespace() {
+            add_number(&mut result, &mut last_word);
+        } else {
+            panic!("Could not tokenize the given string");
+        }
+    }
+    add_number(&mut result, &mut last_word);
+    return result;
+}
 
+fn is_token(c: char) -> bool {
+    vec!['+', '-', '*', '/', '%', '^', '_', '(', ')', '='].iter().any(|&token| token == c)
+}
+
+fn add_token(vec: &mut Vec<Token>, c: char) {
+    let token = match c {
+        '+' => Token::Add,
+        '-' => Token::Sub,
+        '*' => Token::Mul,
+        '/' => Token::Div,
+        '%' => Token::Mod,
+        '^' => Token::Exp,
+        '_' => Token::Log,
+        '(' => Token::LeftParentheses,
+        ')' => Token::RightParentheses,
+        '=' => Token::Equal,
+        _ => panic!("Not given a valid token character")
+    };
+    vec.push(token);
+}
+
+fn add_number(vec: &mut Vec<Token>, word: &mut String) {
+    if !word.is_empty() {
+        match word.parse::<f64>() {
+            Ok(num) => {
+                vec.push(Token::Num(num));
+                word.clear();
+            }
+            _ => panic!("Not a given valid token creator")
+        }
+    }
 }
 
 fn is_numeric(string: &str) -> bool {
@@ -46,6 +94,8 @@ fn is_numeric(string: &str) -> bool {
     }
     last.is_numeric() && period_count < 2
 }
+
+//fn parse(tokens: Vec<Token>) -> Expr
 
 impl<'a> Expr<'a> {
     fn eval(&self, env: &HashMap<&str, f64>) -> f64 {
@@ -66,7 +116,7 @@ impl<'a> Expr<'a> {
 
 #[test]
 fn parse_test() {
-    let four = "4.000000".parse::<f64>().unwrap();
+    let four = "-4.000000".parse::<f64>().unwrap();
     assert!(four.is_normal());
     let thirty_five = Expr::Add(Box::new((Expr::Id("a"))), Box::new((Expr::Num(18.0))));
     let mut hash_map : HashMap<&str, f64> = HashMap::new();
@@ -75,4 +125,5 @@ fn parse_test() {
     assert!(is_numeric("22.25"));
     assert!(is_numeric(".2225"));
     assert!(!is_numeric("2225."));
+    println!("{:?}", tokenize("1+2*(3_10/(10.222222^4))"));
 }
