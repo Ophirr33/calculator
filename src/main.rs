@@ -1,19 +1,7 @@
 use std::collections::HashMap;
 use std::vec::Vec;
 
-enum Expr<'a> {
-    Num(f64),
-    Id(&'a str),
-    Add(Box<Expr<'a>>, Box<Expr<'a>>),
-    Sub(Box<Expr<'a>>, Box<Expr<'a>>),
-    Mul(Box<Expr<'a>>, Box<Expr<'a>>),
-    Div(Box<Expr<'a>>, Box<Expr<'a>>),
-    Mod(Box<Expr<'a>>, Box<Expr<'a>>),
-    Exp(Box<Expr<'a>>, Box<Expr<'a>>),
-    Log(Box<Expr<'a>>, Box<Expr<'a>>),
-}
-
-#[derive (Debug)]
+#[derive (Debug, PartialEq)]
 enum Token {
     Num(f64),
     Add,
@@ -23,9 +11,23 @@ enum Token {
     Mod,
     Exp,
     Log,
-    LeftParentheses,
-    RightParentheses,
-    Equal
+    Left,
+    Right
+}
+
+impl Ord for Token {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let find_prec = |&token| {
+            match token {
+                &Num(_)             => 0,
+                &Add  | &Sub        => 1,
+                &Mul  | &Div | &Mod => 2,
+                &Exp  | &Log        => 3,
+                &Left | &Right      => 4
+            }
+        }
+        find_prec(&self).cmp(find_prec(other))
+    }
 }
 
 fn main() {
@@ -64,10 +66,9 @@ fn add_token(vec: &mut Vec<Token>, c: char) {
         '%' => Token::Mod,
         '^' => Token::Exp,
         '_' => Token::Log,
-        '(' => Token::LeftParentheses,
-        ')' => Token::RightParentheses,
-        '=' => Token::Equal,
-        _ => panic!("Not given a valid token character")
+        '(' => Token::Left,
+        ')' => Token::Right,
+        _   => panic!("Not given a valid token character")
     };
     vec.push(token);
 }
@@ -90,28 +91,41 @@ fn infix_to_postfix(tokens: Vec<Token>) -> Vec<Token> {
     let mut result = Vec::new();
     for token in tokens {
         match token {
-            Token::Num(n)           => result.push(token),
-            Token::LeftParentheses  => stack.push(token),
-            Token::RightParentheses => {
-
-            }
+            Token::Num(n) => result.push(token),
+            Token::Left   => stack.push(token),
+            Token::Right  => {
+                while !stack.is_empty() {
+                    let item = stack.pop.unwrap();
+                    if item == Left {
+                        break;
+                    } else {
+                        result.push(item);
+                    }
+                }
+                // At this point, we've found no matching left Paren
+                panic!("Right Parentheses without corresponding Left");
+            },
+            _ => token_push_help(&token, &mut stack, &mut result)
         }
     }
-
+    result.append(stack);
+    result
 }
 
-impl<'a> Expr<'a> {
-    fn eval(&self, env: &HashMap<&str, f64>) -> f64 {
-        match self{
-            &Expr::Num(n) => n,
-            &Expr::Id(key) => *(env.get(key).unwrap()),
-            &Expr::Add(ref left, ref right) => (**left).eval(env) + (**right).eval(env),
-            &Expr::Sub(ref left, ref right) => (**left).eval(env) - (**right).eval(env),
-            &Expr::Mul(ref left, ref right) => (**left).eval(env) * (**right).eval(env),
-            &Expr::Div(ref left, ref right) => (**left).eval(env) / (**right).eval(env),
-            &Expr::Mod(ref left, ref right) => (**left).eval(env) % (**right).eval(env),
-            &Expr::Exp(ref left, ref right) => (**left).eval(env).powf((**right).eval(env)),
-            &Expr::Log(ref left, ref right) => (**left).eval(env).log((**right).eval(env))
+// This function is ugly.
+fn token_push_help(token :: &Token, stack: &mut Vec<Token>, result: &mut Vec<Token>) {
+    if stack.is_empty() {
+        stack.push(token);
+    } else {
+        let mut item = stack[stack.size() - 1];
+        if token > item {
+            stack.push(item);
+        } else if token == item {
+            result.push(stack.pop().unwrap());
+            stack.push(token);
+        } else {
+            result.push(stack.pop().unwrap());
+            token_push_help(token, stack, result);
         }
     }
 }
@@ -120,10 +134,7 @@ impl<'a> Expr<'a> {
 #[test]
 fn parse_test() {
     let four = "-4.000000".parse::<f64>().unwrap();
-    assert!(four.is_normal());
-    let thirty_five = Expr::Add(Box::new((Expr::Id("a"))), Box::new((Expr::Num(18.0))));
-    let mut hash_map : HashMap<&str, f64> = HashMap::new();
-    hash_map.insert("a", 17.0);
-    assert_eq!(thirty_five.eval(&hash_map), 35.0);
+    assert_eq!(four, -4);
     println!("{:?}", tokenize("1+2*(3_10/(10.222222^4))"));
+    println!("{:?}", infix_to_postfix(tokenize("(10 + 7) * 4 - 3^2")));
 }
