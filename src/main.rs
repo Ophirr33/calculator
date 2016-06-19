@@ -84,18 +84,21 @@ fn add_number(vec: &mut Vec<Token>, word: &mut String) {
     }
 }
 
-fn is_numeric(string: &str) -> bool {
-    let mut period_count = 0;
-    let mut last = 'z';
-    for c in string.chars() {
-        last = c;
-        if c == '.' { period_count += 1 }
-        else if !c.is_numeric() { return false }
-    }
-    last.is_numeric() && period_count < 2
-}
+// http://csis.pace.edu/~wolf/CS122/infix-postfix.htm
+fn infix_to_postfix(tokens: Vec<Token>) -> Vec<Token> {
+    let mut stack = Vec::new();
+    let mut result = Vec::new();
+    for token in tokens {
+        match token {
+            Token::Num(n)           => result.push(token),
+            Token::LeftParentheses  => stack.push(token),
+            Token::RightParentheses => {
 
-//fn parse(tokens: Vec<Token>) -> Expr
+            }
+        }
+    }
+
+}
 
 impl<'a> Expr<'a> {
     fn eval(&self, env: &HashMap<&str, f64>) -> f64 {
@@ -122,8 +125,5 @@ fn parse_test() {
     let mut hash_map : HashMap<&str, f64> = HashMap::new();
     hash_map.insert("a", 17.0);
     assert_eq!(thirty_five.eval(&hash_map), 35.0);
-    assert!(is_numeric("22.25"));
-    assert!(is_numeric(".2225"));
-    assert!(!is_numeric("2225."));
     println!("{:?}", tokenize("1+2*(3_10/(10.222222^4))"));
 }
