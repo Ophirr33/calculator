@@ -156,42 +156,22 @@ fn eval_postfix(mut tokens : Vec<Token>) -> Option<f64> {
     tokens.reverse();
     let mut result = Vec::new();
     while !tokens.is_empty() {
-        match tokens.pop().unwrap() {
-            Token::Num(n) => result.push(n),
-            Token::Add => {
-                let n = result.pop().unwrap() + result.pop().unwrap();
-                result.push(n);
-            },
-            Token::Sub => {
-                let n1 = result.pop().unwrap();
-                let n2 = result.pop().unwrap();
-                result.push(n2 - n1);
-            },
-            Token::Mul => {
-                let n = result.pop().unwrap() * result.pop().unwrap();
-                result.push(n);
-            },
-            Token::Div => {
-                let n1 = result.pop().unwrap();
-                let n2 = result.pop().unwrap();
-                result.push(n2 / n1);
-            },
-            Token::Mod => {
-                let n1 = result.pop().unwrap();
-                let n2 = result.pop().unwrap();
-                result.push(n2 % n1);
-            },
-            Token::Exp => {
-                let n1 = result.pop().unwrap();
-                let n2 = result.pop().unwrap();
-                result.push(n2.powf(n1));
-            },
-            Token::Log => {
-                let n1 = result.pop().unwrap();
-                let n2 = result.pop().unwrap();
-                result.push(n2.log(n1));
-            },
-            _ => panic!("Postfix expressions don't have parentheses")
+        let token = tokens.pop().unwrap();
+        if let Token::Num(n) = token {
+            result.push(n)
+        } else {
+            let n1 = result.pop().unwrap();
+            let n2 = result.pop().unwrap();
+            match token {
+                Token::Add => result.push(n1 + n2),
+                Token::Sub => result.push(n2 - n1),
+                Token::Mul => result.push(n1 * n2),
+                Token::Div => result.push(n2 / n1),
+                Token::Mod => result.push(n2 % n1),
+                Token::Exp => result.push(n2.powf(n1)),
+                Token::Log => result.push(n2.log(n1)),
+                _ => panic!("Postfix expressions don't have parentheses")
+            }
         }
     }
     result.pop()
